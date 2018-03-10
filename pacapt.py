@@ -45,7 +45,7 @@ class Pacapt(dotbot.Plugin):
             success = False
             self._log.warning('Command [%s] failed' % cmd)
         cmd = ' '.join(['sudo', _pacapt_path(), '-S'] + packages_to_install)
-        self._log.lowinfo('Installing packages [%s]' % cm))
+        self._log.lowinfo('Installing packages [%s]' % cmd)
         ret = subprocess.call(
             cmd,
             shell=True,
