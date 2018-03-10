@@ -28,22 +28,25 @@ class Pacapt(dotbot.Plugin):
             else:
                 raise TypeError('Package does not understand {0!r}'.format(item))
         packages_to_install = list(sorted(set(packages_to_install)))
-
         executable = os.environ.get('SHELL')
-        cmd = ' '.join(['sudo', _pacapt_path(), '-Sy'])
-        self._log.lowinfo('Updating package cache(s) [%s]' % cmd)
-        ret = subprocess.call(
-            cmd,
-            shell=True,
-            stdin=None,
-            stdout=None,
-            stderr=None,
-            cwd=self._context.base_directory(),
-            executable=executable,
-        )
-        if ret != 0:
-            success = False
-            self._log.warning('Command [%s] failed' % cmd)
+
+        if system_name not in ['fedora', 'centos']:
+            # Update package caches if need be.
+            cmd = ' '.join(['sudo', _pacapt_path(), '-Sy'])
+            self._log.lowinfo('Updating package cache(s) [%s]' % cmd)
+            ret = subprocess.call(
+                cmd,
+                shell=True,
+                stdin=None,
+                stdout=None,
+                stderr=None,
+                cwd=self._context.base_directory(),
+                executable=executable,
+            )
+            if ret != 0:
+                success = False
+                self._log.warning('Command [%s] failed' % cmd)
+
         cmd = ' '.join(['sudo', _pacapt_path(), '-S'] + packages_to_install)
         self._log.lowinfo('Installing packages [%s]' % cmd)
         ret = subprocess.call(
