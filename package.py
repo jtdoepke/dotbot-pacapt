@@ -1,40 +1,75 @@
+import os
 import platform
-import sys
+import subprocess
 
 import dotbot
 
 
-if sys.version_info >= (3, 3):
-    from shutil import which as find_executable
-else:
-    from distutils.spawn import find_executable
-
-
-class PackageInstaller(dotbot.Plugin):
-    """Dotbot plugin to install packages via different package managers."""
+class Package(dotbot.Plugin):
+    """Install packages via pacapt."""
     _directive = 'packages'
 
-    def can_handle(self, action):
-        return action == self._directive
+    def can_handle(self, directive):
+        return directive == self._directive
 
-    def handle(self, action, data):
-        pass
+    def handle(self, directive, data):
+        success = True
+        system_name = self.get_system_short_name()
+        packages_to_install = []
+        for item in data:
+            if isinstance(item, str):
+                packages_to_install.append(item)
+            elif isinstance(item, dict):
+                if system_name in item:
+                    item_packages = item[system_name]
+                    if isinstance(item_packages, str):
+                        item_packages = [item_packages]
+                    packages_to_install += item_packages
+            else:
+                raise TypeError('Package does not understand {0!r}'.format(item))
 
-    def detect_pacakage_manager(self):
-        # Inspired by how https://github.com/icy/pacapt
-        # detects the package manager.
-        uname = platform.uname()
+        executable = os.environ.get('SHELL')
+        cmd = ' '.join(['sudo', _pacapt_path(), '--noconfirm', '-Sy'])
+        self._log.lowinfo('Updating package cache(s) [%s]' % cmd)
+        ret = subprocess.call(
+            cmd,
+            shell=True,
+            stdin=None,
+            stdout=None,
+            stderr=None,
+            cwd=self._context.base_directory(),
+            executable=executable,
+        )
+        if ret != 0:
+            success = False
+            self._log.warning('Command [%s] failed' % cmd)
+        cmd = ' '.join(['sudo', _pacapt_path(), '--noconfirm', '-S'] + packages_to_install)
+        self._log.lowinfo('Installing %s [%s]' % (', '.join(packages_to_install), cmd))
+        ret = subprocess.call(
+            cmd,
+            shell=True,
+            stdin=None,
+            stdout=None,
+            stderr=None,
+            cwd=self._context.base_directory(),
+            executable=executable,
+        )
+        if ret != 0:
+            success = False
+            self._log.warning('Command [%s] failed' % cmd)
+        if success:
+            self._log.info('Packages were installed')
+        else:
+            self._log.error('Some commands were not successfully executed')
+        return success
 
-        if uname.system == 'SunOS':
-            return SunTools
 
-        issue = _maybe_read('/etc/issue').lower()
-        release = _maybe_read('/etc/os-release').lower()
-
-        for package_manager in PACKAGE_MANAGERS:
-            system = package_manager.system_name.lower()
-            if package_manager.get_executable() and (system in issue or system in release):
-                return package_manager
+def _pacapt_path():
+    here_dir = os.path.abspath(os.path.dirname(__file__))
+    path = os.path.join(here_dir, 'pacapt', 'pacapt')
+    if not os.path.exists(path):
+        raise Exception('%s not found. Submodule init?' % path)
+    return path
 
 
 def _maybe_read(path):
@@ -45,78 +80,30 @@ def _maybe_read(path):
         return ''
 
 
-class PackageManager(object):
-    command_name = None
-    system_name = None
-
-    def __init__(self):
-        if None in (self.command_name, self.system_name):
-            raise ValueError('subclass must set command_name and system_name')
-
-    def get_executable(self):
-        return find_executable(self.command_name)
-
-    def update_packages(self):
-        raise NotImplementedError
-
-    def install_packages(self, packages, noconfirm=True):
-        raise NotImplementedError
+DISTROS = {
+    'Arch Linux': 'arch',
+    'Ubuntu': 'ubuntu',
+    'Debian': 'debian',
+    'CentOS': 'centos',
+    'Red Hat': 'redhat',
+    'Alpine Linux': 'alpine',
+    'Fedora': 'fedora',
+}
 
 
-class SunTools(PackageManager):
-    command_name = 'sun_tools'
-    system_name = 'SunOS'
+def get_system_short_name(self):
+    mac_ver = platform.mac_ver()
+    if mac_ver:
+        return 'mac'
 
+    distro = platform.linux_distribution()[0]
+    if distro in DISTROS:
+        return DISTROS[distro]
 
-class ArchLinux(PackageManager):
-    command_name = 'pacman'
-    system_name = 'Arch Linux'
+    issue = _maybe_read('/etc/issue').lower()
+    release = _maybe_read('/etc/os-release').lower()
 
-
-class Debian(PackageManager):
-    command_name = 'dpkg'
-    system_name = 'Debian GNU/Linux'
-
-
-class Ubuntu(PackageManager):
-    command_name = 'dpkg'
-    system_name = 'Ubuntu'
-
-
-class ExherboLinux(PackageManager):
-    command_name = 'cave'
-    system_name = 'Exherbo Linux'
-
-
-class CentOS(PackageManager):
-    command_name = 'yum'
-    system_name = 'CentOS'
-
-
-class RedHat(PackageManager):
-    command_name = 'yum'
-    system_name = 'Red Hat'
-
-
-class SUSE(PackageManager):
-    command_name = 'zypper'
-    system_name = 'SUSE'
-
-
-class OpenBSD(PackageManager):
-    command_name = 'pkg_tools'
-    system_name = 'OpenBSD'
-
-
-class Bitrig(PackageManager):
-    command_name = 'pkg_tools'
-    system_name = 'Bitrig'
-
-
-class AlpineLinux(PackageManager):
-    command_name = 'apk'
-    system_name = 'Alpine Linux'
-
-
-
-PACKAGE_MANAGERS = list(PackageManager.__subclasses__())
+    for short_name, long_name in DISTROS:
+        long_name = long_name.lower()
+        if long_name in issue or long_name in release:
+            return short_name
