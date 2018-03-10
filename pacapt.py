@@ -14,7 +14,7 @@ class Pacapt(dotbot.Plugin):
 
     def handle(self, directive, data):
         success = True
-        system_name = self.get_system_short_name()
+        system_name = get_system_short_name()
         packages_to_install = []
         for item in data:
             if isinstance(item, str):
@@ -27,6 +27,7 @@ class Pacapt(dotbot.Plugin):
                     packages_to_install += item_packages
             else:
                 raise TypeError('Package does not understand {0!r}'.format(item))
+        packages_to_install = list(sorted(set(packages_to_install)))
 
         executable = os.environ.get('SHELL')
         cmd = ' '.join(['sudo', _pacapt_path(), '--noconfirm', '-Sy'])
@@ -91,8 +92,8 @@ DISTROS = {
 }
 
 
-def get_system_short_name(self):
-    mac_ver = platform.mac_ver()
+def get_system_short_name():
+    mac_ver = platform.mac_ver()[0]
     if mac_ver:
         return 'mac'
 
