@@ -5,9 +5,9 @@ import subprocess
 import dotbot
 
 
-class Package(dotbot.Plugin):
+class Pacapt(dotbot.Plugin):
     """Install packages via pacapt."""
-    _directive = 'packages'
+    _directive = 'pacapt'
 
     def can_handle(self, directive):
         return directive == self._directive
