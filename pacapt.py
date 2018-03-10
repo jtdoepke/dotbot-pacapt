@@ -30,7 +30,7 @@ class Pacapt(dotbot.Plugin):
         packages_to_install = list(sorted(set(packages_to_install)))
 
         executable = os.environ.get('SHELL')
-        cmd = ' '.join(['sudo', _pacapt_path(), '--noconfirm', '-Sy'])
+        cmd = ' '.join(['sudo', _pacapt_path(), '-Sy'])
         self._log.lowinfo('Updating package cache(s) [%s]' % cmd)
         ret = subprocess.call(
             cmd,
@@ -44,7 +44,7 @@ class Pacapt(dotbot.Plugin):
         if ret != 0:
             success = False
             self._log.warning('Command [%s] failed' % cmd)
-        cmd = ' '.join(['sudo', _pacapt_path(), '--noconfirm', '-S'] + packages_to_install)
+        cmd = ' '.join(['sudo', _pacapt_path(), '-S'] + packages_to_install)
         self._log.lowinfo('Installing %s [%s]' % (', '.join(packages_to_install), cmd))
         ret = subprocess.call(
             cmd,
