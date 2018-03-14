@@ -1,4 +1,4 @@
-- packages:
+- pacapt:
    # Can just list packages that have a common name across package managers.
    - git
    - wget

@@ -15,7 +15,7 @@ Add the plugin dir to your install script.
 Add a `packages` entry to your dotbot config:
 
 ```yaml
-- packages:
+- pacapt:
    # Can just list packages that have a common name across package managers.
    - git
    - wget
